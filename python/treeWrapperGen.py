@@ -40,7 +40,7 @@ def get_tree_structure(tt):
 if __name__ == "__main__":
     
     tf = ROOT.TFile(sys.argv[1])
-    tt = tf.Get("btagana/ttree")
+    tt = tf.Get(sys.argv[2])
 
     tree_structure, tree_structure_by_count = get_tree_structure(tt)
     ev = "class Event:\n"
