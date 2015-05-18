@@ -9,6 +9,7 @@
 #
 # author: Joosep Pata (ETHz) joosep.pata@cern.ch
 # useful comments and ideas by Gregor Kasieczka (ETHz)
+# This code is licensed under the MIT license
 import sys, os, imp
 
 #add type mappings from C++ -> ROOT 1-character here
