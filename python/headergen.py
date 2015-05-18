@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 #
-# run as ./headergen.py infile.h outfile.h branchefs.py
-# branchdefs.py must contain a list of branches named "process"
-# or ./headergen.py this will set:
-#  infile.h -> ../interface/ttbar_tree_template.h
-#  outfile.h -> ../interface/ttbar_tree.h
-#  branchdefs.py -> sample_branches.py
+# 1. run as ./headergen.py infile.h outfile.h branchefs.py
+# branchdefs.py must contain a list of branches named as "process"
+# 2. or ./headergen.py this will set:
+#  infile.h -> ../interface/tree_template.hh
+#  outfile.h -> ../interface/tree.hh
+#  branchdefs.py -> branches.py
 #
 # author: Joosep Pata (ETHz) joosep.pata@cern.ch
 # useful comments and ideas by Gregor Kasieczka (ETHz)
