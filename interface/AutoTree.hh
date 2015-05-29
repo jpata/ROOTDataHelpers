@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <assert.h>
+#include <stdexcept>
 
 using namespace std;
 
@@ -18,7 +19,7 @@ class ScalarBranch {
 public:
     
     //buffer for SetBranchAddress
-    T val;
+    T val = 0;
     
     ScalarBranch() {
         zero();
@@ -65,7 +66,7 @@ public:
         VINT,
     };
     
-    const Type type;
+    Type type;
     
     BranchType(Type _type) : type(_type) {};
     BranchType() : type(UNKNOWN) {};
@@ -77,11 +78,36 @@ public:
     }
 };
 
+
+vector<string> &split(const string &s, char delim, vector<string> &elems);
+vector<string> split(const std::string &s, char delim);
+
 class TreeStructure {
-private:
+public:
+    
     std::map<const std::string, BranchType> branches;    
 
-public:
+    TreeStructure() {
+        
+    }
+    
+    TreeStructure(const std::string& description) {
+        std::vector<std::string> tokens = split(description, ':');
+        for (auto& tok : tokens) {
+            std::vector<std::string> tok_vec = split(tok, '/');
+            if (tok_vec.size()!=2) {
+                throw std::runtime_error("could not understand token");
+            }
+            const std::string name = tok_vec[0];
+            const std::string type = tok_vec[1];
+            
+            if (type == "F") {
+                branches[name] = BranchType(BranchType::Type::FLOAT);
+            } else {
+                throw std::runtime_error("could not understand token type");
+            }
+        }
+    }
     const std::string toString() const {
         std::stringstream ss;
         for (auto& kv : branches) {
@@ -113,12 +139,16 @@ public:
     std::map<const std::string, VariableArrayBranch<int>*>      vints_map;
     TTree* tree;
     
-    AutoTree(TTree* tree);
+    AutoTree(const TreeStructure&, const std::string& );
+    AutoTree(TTree*);
 
     unsigned long getEntry(unsigned long i);
     
     template <class T>
     T getValue(const std::string name);
+
+    template <class T>
+    T* getAddress(const std::string name);
     
     const TreeStructure getTreeStructure() {
         return tree_structure;

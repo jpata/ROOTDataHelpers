@@ -6,3 +6,6 @@ testAutoTree: test/TestAutoTree.cc
 testHeaderGen: test/TestAutoTree.cc
 	python/headergen.py interface/tree_template.hh interface/tree.hh python/branches.py
 	$(CXX) test/TestTreeHeader.cc `root-config --libs --cflags` -I./ -o testTreeHeader
+
+tmvaEvaluator: test/tmvaEvaluator.cc
+	$(CXX) -g `root-config --cflags --libs` -lTMVA -I./ src/AutoTree.cc test/tmvaEvaluator.cc -o tmvaEvaluator	

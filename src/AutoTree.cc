@@ -1,5 +1,36 @@
 #include "interface/AutoTree.hh"
 
+vector<string> &split(const string &s, char delim, vector<string> &elems) {
+    stringstream ss(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+vector<string> split(const std::string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
+AutoTree::AutoTree(const TreeStructure& _tree_structure, const std::string& tree_name) :
+tree_structure(_tree_structure) {
+    this->tree = new TTree(tree_name.c_str(), "tree");
+    for (auto& br : tree_structure.branches) {
+        const std::string brname = br.first;
+        if (br.second.type == BranchType::Type::DOUBLE) {
+            doubles_map[brname] = new ScalarBranch<double>();
+            this->tree->Branch(brname.c_str(), &(doubles_map[brname]->val), (brname+"/D").c_str());
+        }
+        else if (br.second.type == BranchType::Type::FLOAT) {
+            floats_map[brname] = new ScalarBranch<float>();
+            this->tree->Branch(brname.c_str(), &(floats_map[brname]->val), (brname+"/F").c_str());
+        }
+    }
+}
+
 AutoTree::AutoTree(TTree* tree) {
     this->tree = tree;
     TObjArray* brlist = tree->GetListOfBranches();
@@ -99,6 +130,21 @@ template <>
 int AutoTree::getValue<int>(const std::string name) {
     assert(ints_map.find(name) != ints_map.end());
     return ints_map[name]->val;
+}
+
+template <>
+double* AutoTree::getAddress<double>(const std::string name) {
+    return &(doubles_map[name]->val);
+}
+
+template <>
+float* AutoTree::getAddress<float>(const std::string name) {
+    return &(floats_map[name]->val);
+}
+
+template <>
+int* AutoTree::getAddress<int>(const std::string name) {
+    return &(ints_map[name]->val);
 }
 
 template <>
