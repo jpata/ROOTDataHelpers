@@ -9,3 +9,6 @@ testHeaderGen: test/TestAutoTree.cc
 
 tmvaEvaluator: test/tmvaEvaluator.cc
 	$(CXX) -g `root-config --cflags --libs` -lTMVA -I./ src/AutoTree.cc test/tmvaEvaluator.cc -o tmvaEvaluator	
+
+TreeSelector: test/TreeSelector.cc
+	$(CXX) -g `root-config --cflags --libs` -I./ src/AutoTree.cc test/TreeSelector.cc -o TreeSelector	

@@ -15,8 +15,8 @@ vector<string> split(const std::string &s, char delim) {
     return elems;
 }
 
-AutoTree::AutoTree(const TreeStructure& _tree_structure, const std::string& tree_name) :
-tree_structure(_tree_structure) {
+AutoTree::AutoTree(TreeStructure&& _tree_structure, const std::string& tree_name) {
+    tree_structure = std::move(_tree_structure);
     this->tree = new TTree(tree_name.c_str(), "tree");
     for (auto& br : tree_structure.branches) {
         const std::string brname = br.first;
@@ -27,6 +27,40 @@ tree_structure(_tree_structure) {
         else if (br.second.type == BranchType::Type::FLOAT) {
             floats_map[brname] = new ScalarBranch<float>();
             this->tree->Branch(brname.c_str(), &(floats_map[brname]->val), (brname+"/F").c_str());
+        }
+        else if (br.second.type == BranchType::Type::INT) {
+            floats_map[brname] = new ScalarBranch<float>();
+            this->tree->Branch(brname.c_str(), &(ints_map[brname]->val), (brname+"/I").c_str());
+        }
+    }
+}
+
+void AutoTree::createBranches(TTree* other_tree) {
+    for (auto& br : tree_structure.branches) {
+        const std::string brname = br.first;
+        if (br.second.type == BranchType::Type::DOUBLE) {
+            other_tree->Branch(brname.c_str(), &(doubles_map[brname]->val), (brname+"/D").c_str());
+        }
+        else if (br.second.type == BranchType::Type::FLOAT) {
+            other_tree->Branch(brname.c_str(), &(floats_map[brname]->val), (brname+"/F").c_str());
+        }
+        else if (br.second.type == BranchType::Type::INT) {
+            other_tree->Branch(brname.c_str(), &(ints_map[brname]->val), (brname+"/I").c_str());
+        }
+    }
+}
+
+void AutoTree::connectBranches(TTree* other_tree) {
+    for (auto& br : tree_structure.branches) {
+        const std::string brname = br.first;
+        if (br.second.type == BranchType::Type::DOUBLE) {
+            other_tree->SetBranchAddress(brname.c_str(), &(doubles_map[brname]->val));
+        }
+        else if (br.second.type == BranchType::Type::FLOAT) {
+            other_tree->SetBranchAddress(brname.c_str(), &(floats_map[brname]->val));
+        }
+        else if (br.second.type == BranchType::Type::INT) {
+            other_tree->SetBranchAddress(brname.c_str(), &(ints_map[brname]->val));
         }
     }
 }
@@ -90,7 +124,7 @@ AutoTree::AutoTree(TTree* tree) {
         }
     }
 }
-    
+
 unsigned long AutoTree::getEntry(unsigned long i) {
     for (auto kv : doubles_map) {
         kv.second->zero();

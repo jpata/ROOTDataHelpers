@@ -139,10 +139,12 @@ public:
     std::map<const std::string, VariableArrayBranch<int>*>      vints_map;
     TTree* tree;
     
-    AutoTree(const TreeStructure&, const std::string& );
+    AutoTree(TreeStructure&&, const std::string& );
     AutoTree(TTree*);
 
     unsigned long getEntry(unsigned long i);
+    void createBranches(TTree* tree);
+    void connectBranches(TTree* tree);
     
     template <class T>
     T getValue(const std::string name);
