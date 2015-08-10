@@ -2,7 +2,7 @@ from sklearn.externals import six
 from sklearn.tree import _tree
 import numpy as np
 
-def node_to_str(cls, tree, node_id, criterion, depth, kind):
+def node_to_str(cls, tree, node_id, criterion, depth, kind, coef):
     if not isinstance(criterion, six.string_types):
         criterion = "impurity"
 
@@ -21,7 +21,7 @@ def node_to_str(cls, tree, node_id, criterion, depth, kind):
 IVar="{2}" Cut="{3:.16E}" cType="1" \
 res="{4:.16E}" rms="0.0e-00" \
 purity="{5}" nType="-99">'.format(
-            kind, depth, IVar, 0.0, value[0]/cls.n_estimators * 10,
+            kind, depth, IVar, 0.0, value[0] / cls.n_estimators * coef,
             tree.impurity[node_id]
         )
     else:
@@ -31,21 +31,21 @@ purity="{5}" nType="-99">'.format(
 IVar="{2}" Cut="{3:.16E}" cType="1" \
 res="{4:.16E}" rms="0.0" \
 purity="{5}" nType="0">'.format(
-        kind, depth, IVar, tree.threshold[node_id], value[0]/cls.n_estimators * 10,
+        kind, depth, IVar, tree.threshold[node_id], value[0] / cls.n_estimators * coef,
         tree.impurity[node_id]
     )
 
 
-def recurse(cls, outfile, t, node_id=0, criterion="impurity", depth=0, kind="s"):   
-    outfile.write(depth*"  "+node_to_str(cls, t, node_id, criterion, depth, kind) + '\n')
+def recurse(cls, outfile, t, coef, node_id=0, criterion="impurity", depth=0, kind="s"):   
+    outfile.write(depth*"  "+node_to_str(cls, t, node_id, criterion, depth, kind, coef) + '\n')
     left_child = t.children_left[node_id]
     right_child = t.children_right[node_id]
     if depth == 10:
         return
     if left_child != _tree.TREE_LEAF:
-        recurse(cls, outfile, t, left_child, criterion, depth+1, kind="l")
+        recurse(cls, outfile, t, coef, left_child, criterion, depth+1, kind="l")
     if right_child != _tree.TREE_LEAF:
-        recurse(cls, outfile, t, right_child, criterion, depth+1, kind="r")
+        recurse(cls, outfile, t, coef, right_child, criterion, depth+1, kind="r")
     #if left_child == _tree.TREE_LEAF or right_child == _tree.TREE_LEAF:
     outfile.write(depth*"  "+"</Node>\n")
     
@@ -58,6 +58,7 @@ def gbr_to_tmva(cls, data, outfile_name, **kwargs):
     #if cls.n_classes_ != 1:
     #    raise ValueError("Currently only two-class classification supported. (regression between 0 and 1).")    
     mva_name = kwargs.get("mva_name", "bdt")
+    coef = kwargs.get("coef", 10)
     feature_names = data.columns.values
     features_min  = [data[fn].min() for fn in feature_names]
     features_max  = [data[fn].max() for fn in feature_names]
@@ -153,7 +154,7 @@ def gbr_to_tmva(cls, data, outfile_name, **kwargs):
     )
     for itree, t in enumerate(cls.estimators_[:, 0]):
         outfile.write('<BinaryTree type="DecisionTree" boostWeight="1.0" itree="{0}">\n'.format(itree, cls.learning_rate))
-        recurse(cls, outfile, t.tree_)
+        recurse(cls, outfile, t.tree_, coef)
         outfile.write('</BinaryTree>\n')
     outfile.write("""
       </Weights>
@@ -161,50 +162,9 @@ def gbr_to_tmva(cls, data, outfile_name, **kwargs):
     """)
     outfile.close()
 
-if __name__ == "__main__":
-    from sklearn import datasets
-    import pandas
-    import math
-    data = pandas.read_csv("/Users/joosep/Desktop/data.csv")
-    #iris = datasets.load_iris()
-    data = data[data.eval("(Jet_CSV>=0) & (Jet_CSV<=1) & (Jet_CSVIVF>=0) & (Jet_CSVIVF<=1)")]
-    X = data[["Jet_CSV", "Jet_CSVIVF"]]
-    Y = data["Jet_flavour"]==5
-    cols = ["a", "b"]
-    data = pandas.DataFrame(X, columns=cols)
-    cls = GradientBoostingClassifier(max_depth=3, n_estimators=2, verbose=True, min_samples_leaf=1, min_samples_split=1)
-    cls.fit(X,Y)
-    
-    gbr_to_tmva(cls, data, "test.xml")
-
-    import ROOT, array
-    from ROOT import TMVA
-
-    reader = TMVA.Reader("!V")
-    vardict = {}
-    for fn in cols:
-        vardict[fn] = array.array("f", [0])
-        reader.AddVariable(fn, vardict[fn])
-    reader.BookMVA("testmva", "test.xml")
-    
-    def mva1(x,y):
-        s = 0
-        for t in cls.estimators_[:,0]:
-            x = t.tree_.predict(np.array([[x,y]], dtype="float32"))
-            s += x[0,0]
-            print x[0,0]
-        #s = cls.decision_function([x,y])[0]
-        return 2.0/(1.0+math.exp(-2.0*s))-1
-        #return s 
-    def mva2(x,y):
-        vardict["a"][0] = x
-        vardict["b"][0] = y
-        return reader.EvaluateMVA("testmva")
-    
-    for i in range(X.shape[0])[:10]:
-        x = X.iloc[i,0]
-        y = X.iloc[i,1]
-        z = Y.iloc[i]
-        v1 = mva1(x,y)
-        v2 = mva2(x,y)
-        print x, y, z, v1, v2
+def evaluate_sklearn(cls, vals, coef=10):
+    ret = 0
+    for t in cls.estimators_[:,0]:
+        r = t.tree_.predict(np.array(vals, dtype="float32")) / cls.n_estimators * coef
+        ret += r[0,0]
+    return 2.0/(1.0+np.exp(-2.0*ret))-1
