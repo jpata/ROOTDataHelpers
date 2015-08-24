@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     std::srand ( unsigned ( std::time(0) ) );
 
     if (argc != 5) {
-        return 1;
+        return exit_with_message("./TreeSelector in.root path/ttree out.root N_EVENTS", 1);
     }
     
     const string tree_fn = argv[1];
@@ -50,9 +50,10 @@ int main(int argc, char** argv) {
     std::cout << "Shuffling " << atree.tree->GetEntries() << " events..." << std::endl;
     std::random_shuffle ( entrylist.begin(), entrylist.end() );
     std::sort(entrylist.begin(), entrylist.end());
-    std::cout << "Looping over " << nmax << " events..." << std::endl;
+    const unsigned long max_loop = std::min((unsigned long)atree.tree->GetEntries(), (unsigned long)nmax);
+    std::cout << "Looping over " << max_loop << " events..." << std::endl;
     
-    for(unsigned long i=0; i < nmax; i++) {
+    for(unsigned long i=0; i < max_loop; i++) {
         unsigned long iev = entrylist[i];
         atree.getEntry(iev);
         outtree->Fill();
